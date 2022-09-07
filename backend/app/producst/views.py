@@ -1,5 +1,5 @@
 from rest_framework.response import Response
-from rest_framework import generics
+from rest_framework import generics,mixins
 
 from .models import Product
 from .serializers import ProductSerializer
@@ -23,11 +23,42 @@ class ProductDetailapiView(generics.RetrieveAPIView):
     
     serializer_class = ProductSerializer
     
-    # lookup_field = 'pk' 
-class ProductListApiView(generics.ListAPIView):
+class ProductUpdateapiView(generics.UpdateAPIView):
+    queryset = Product.objects.all()
+    
+    serializer_class = ProductSerializer 
+    
+    lookup_field = 'pk' 
+    
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        if not instance.content:
+            instance.content=instance.title
+            
+        
+     
+class ProductDestroyApiView(generics.DestroyAPIView):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
+    lookup_field = 'pk' 
     
+    def perform_destroy(self, instance):
+        super().perform_destroy(instance)
+        
+class MyProductMixinView(mixins.ListModelMixin,mixins.CreateModelMixin, mixins.RetrieveModelMixin, generics.GenericAPIView):
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+    lookup_field = 'pk'
+    
+    def get(self,request,*args,**kwagrs):
+        print(args,kwagrs)
+        pk = kwagrs.get('pk')
+        if pk is not None:
+            return self.retrieve(self,request,*args,**kwagrs)
+        return self.list(request,*args,**kwagrs)
+    def post(self,request,*args,**kwagrs):
+        return self.create(request,*args,**kwagrs)
+  
 @api_view(['POST','GET'])
 def product_alt_view(request,pk=None,*args,**kwargs):
     method = request.method
